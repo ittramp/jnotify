@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，你会看到log4j2内部各种详细输出-->
+<!--monitorInterval：Log4j能够自动检测修改配置 文件和重新配置本身，设置间隔秒数-->
+<Configuration xmlns="http://logging.apache.org/log4j/2.0/config"
+               monitorInterval="5">
+    <!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+
+    <!--变量配置-->
+    <Properties>
+        <!-- 格式化输出：%date表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度 %msg：日志消息，%n是换行符-->
+        <!-- %logger{36} 表示 Logger 名字最长36个字符 -->
+        <Property name="LOG_PATTERN" value="%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %L-%M - %msg%n"/>
+        <!-- 定义日志存储的路径 -->
+        <Property name="rootDir" value="./log"/>
+        <Property name="appName" value="data_receiver"/>
+    </Properties>
+
+    <Appenders>
+
+        <Console name="Console" target="SYSTEM_OUT">
+            <!--输出日志的格式-->
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <!--控制台只输出level及其以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+        </Console>
+
+        <!--运行日志，会输出所有的日志-->
+        <RollingFile name="RunningLog" fileName="${rootDir}/log.log"
+                     filePattern="${rootDir}/running-%d{yyyy-MM-dd}_%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="300MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="3">
+                <!-- 压缩文件只保存最近7天的-->
+                <Delete basePath="${rootDir}" maxDepth="2">
+                    <IfFileName glob="*/running-*.log.gz"/>
+                    <IfLastModified age="P7D"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!--  reid的日志-->
+        <RollingFile name="reid-log" fileName="${rootDir}/reid.log"
+                     filePattern="${rootDir}/reid-%d{yyyy-MM-dd}_%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="3">
+                <!-- 压缩文件只保存最近7天的-->
+                <Delete basePath="${rootDir}" maxDepth="2">
+                    <IfFileName glob="*/reid-*.log.gz"/>
+                    <IfLastModified age="P7D"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!-- 这个会打印出所有的error及以下级别的信息，每次大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
+        <RollingFile name="RollingFileError" fileName="${rootDir}/error.log"
+                     filePattern="${rootDir}/error-%d{yyyy-MM-dd}_%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <!--interval属性用来指定多久滚动一次，默认是1 hour-->
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <!-- DefaultRolloverStrategy属性如不设置，则默认为最多同一文件夹下7个文件开始覆盖-->
+            <DefaultRolloverStrategy max="7">
+                <!-- 压缩文件只保存最近7天的-->
+                <Delete basePath="${rootDir}" maxDepth="2">
+                    <IfFileName glob="*/error-*.log.gz"/>
+                    <IfLastModified age="P7D"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <!--druid的日志记录追加器-->
+        <RollingFile name="druidSqlRollingFile" fileName="${rootDir}/sql.log"
+                     filePattern="log/$${date:yyyy-MM}/sql-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %L %M - %msg%xEx%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+            <DefaultRolloverStrategy max="7">
+                <!-- 压缩文件只保存最近7天的-->
+                <Delete basePath="${rootDir}" maxDepth="2">
+                    <IfFileName glob="*/sql-*.log.gz"/>
+                    <IfLastModified age="P7D"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+    </Appenders>
+
+    <!--Logger节点用来单独指定日志的形式，比如要为指定包下的class指定不同的日志级别等。-->
+    <!--然后定义loggers，只有定义了logger并引入的appender，appender才会生效-->
+    <Loggers>
+
+        <!--        &lt;!&ndash;过滤掉spring和mybatis的一些无用的DEBUG信息&ndash;&gt;-->
+        <!--        <logger name="org.mybatis" level="info" additivity="false">-->
+        <!--            <AppenderRef ref="Console"/>-->
+        <!--        </logger>-->
+        <!--监控系统信息-->
+        <!--若是additivity设为false，则 子Logger 只会在自己的appender里输出，而不会在 父Logger 的appender里输出。-->
+        <Logger name="org.springframework" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Root level="warn">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RunningLog"/>
+            <AppenderRef ref="RollingFileError"/>
+        </Root>
+
+        <!--记录druid-sql的记录-->
+        <Logger name="druid.sql.Statement" level="error" additivity="false">
+            <AppenderRef ref="druidSqlRollingFile"/>
+        </Logger>
+        <Logger name="druid.sql.ResultSet" level="error" additivity="false">
+            <AppenderRef ref="druidSqlRollingFile"/>
+        </Logger>
+        <!--  徘徊的日志 -->
+        <Logger name="reid-log" level="debug">
+            <AppenderRef ref="reid-log"/>
+        </Logger>
+    </Loggers>
+
+</Configuration>

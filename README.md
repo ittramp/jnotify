@@ -1,0 +1,1 @@
+运行需要添加 jvm参数  --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.foreign  
