@@ -1,4 +1,4 @@
-package org.joy;
+package org.throne;
 
 /**
  * Hello world!

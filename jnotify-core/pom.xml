@@ -47,7 +47,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.joy.App</mainClass>
+                            <mainClass>org.throne.App</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
